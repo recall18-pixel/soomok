@@ -4,6 +4,7 @@ const monthSelector = document.getElementById('month-selector');
 const monthReport = document.getElementById('month-report');
 const calendar = document.getElementById('calendar');
 const salesForm = document.getElementById('sales-form');
+const businessRegistry = document.getElementById('business-registry');
 
 const now = new Date();
 const years = [];
@@ -17,6 +18,7 @@ const state = {
   selectedMonth: 1,
   isYearReportOpen: false,
   isMonthReportOpen: false,
+  selectedBusinessName: '',
 };
 
 function getSalesData() {
@@ -25,6 +27,14 @@ function getSalesData() {
 
 function saveSalesData(data) {
   localStorage.setItem('salesData', JSON.stringify(data));
+}
+
+function getBusinessRecords() {
+  return JSON.parse(localStorage.getItem('businessRecords') || '[]');
+}
+
+function saveBusinessRecords(records) {
+  localStorage.setItem('businessRecords', JSON.stringify(records));
 }
 
 function setKoreanInput(target) {
@@ -45,6 +55,47 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageFromDataUrl(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'));
+    image.src = dataUrl;
+  });
+}
+
+async function compressImageFile(file) {
+  const originalDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImageFromDataUrl(originalDataUrl);
+  const maxWidth = 1400;
+  const maxHeight = 1400;
+  let { width, height } = image;
+
+  if (width > maxWidth || height > maxHeight) {
+    const ratio = Math.min(maxWidth / width, maxHeight / height);
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext('2d');
+  context.drawImage(image, 0, 0, width, height);
+
+  return canvas.toDataURL('image/jpeg', 0.78);
 }
 
 function renderYearSelector() {
@@ -272,18 +323,11 @@ function renderYearReport() {
 function renderCalendar() {
   const year = state.selectedYear;
   const month = state.selectedMonth;
-  const summary = calculateMonthSummary(year, month);
   const firstDay = new Date(year, month - 1, 1);
   const lastDay = new Date(year, month, 0);
   const days = ['일', '월', '화', '수', '목', '금', '토'];
 
-  let html = `<div class="calendar-summary">
-    <span><b>매출합계:</b> ${summary.amountTotal.toLocaleString()}원</span>
-    <span><b>원가(발주가):</b> ${summary.orderTotal.toLocaleString()}원</span>
-    <span class="profit"><b>수익:</b> ${summary.profitTotal.toLocaleString()}원</span>
-  </div>`;
-
-  html += '<table><tr>';
+  let html = '<table><tr>';
   html += days.map((day) => `<th>${day}</th>`).join('');
   html += '</tr><tr>';
 
@@ -310,6 +354,137 @@ function renderCalendar() {
       showSalesForm(cell.dataset.date);
     });
   });
+}
+
+function renderBusinessRegistry() {
+  const records = getBusinessRecords().sort((left, right) => left.name.localeCompare(right.name, 'ko'));
+  const selectedRecord = records.find((record) => record.name === state.selectedBusinessName) || null;
+  const isEditMode = Boolean(selectedRecord);
+
+  let listHtml = '<p class="empty-text">저장된 거래처가 없습니다.</p>';
+  if (records.length > 0) {
+    listHtml = '<ul class="client-list">' +
+      records.map((record) => `<li>
+        <button type="button" class="client-button${selectedRecord && selectedRecord.name === record.name ? ' is-active' : ''}" data-name="${escapeHtml(record.name)}">
+          <strong>${escapeHtml(record.name)}</strong>
+          <span class="client-meta">${escapeHtml(record.email) || '이메일 없음'}</span>
+        </button>
+      </li>`).join('') +
+      '</ul>';
+  }
+
+  let viewerHtml = '<p class="empty-text">거래처 이름을 누르면 사업자등록증을 확인할 수 있습니다.</p>';
+  if (selectedRecord) {
+    viewerHtml = `<div class="certificate-viewer">
+      <h3>${escapeHtml(selectedRecord.name)}</h3>
+      <p>이메일: ${escapeHtml(selectedRecord.email) || '-'}</p>
+      <div class="certificate-actions">
+        <button type="button" id="business-edit-reset" class="secondary-button">새 거래처 등록</button>
+        <button type="button" id="business-delete" class="danger-button">삭제</button>
+      </div>
+      <img src="${selectedRecord.imageData}" alt="${escapeHtml(selectedRecord.name)} 사업자등록증" class="certificate-image">
+    </div>`;
+  }
+
+  businessRegistry.innerHTML = `<section class="section-card">
+    <h2>사업자등록증 보관</h2>
+    <form id="business-record-form" class="stack-form">
+      <input type="text" name="name" placeholder="거래처 이름" required autocomplete="off" value="${selectedRecord ? escapeHtml(selectedRecord.name) : ''}">
+      <input type="email" name="email" placeholder="이메일" autocomplete="off" value="${selectedRecord ? escapeHtml(selectedRecord.email) : ''}">
+      <input type="file" name="certificate" accept="image/*" ${isEditMode ? '' : 'required'}>
+      <p class="file-hint">이미지는 저장 전에 자동으로 축소/압축됩니다. ${isEditMode ? '새 이미지를 올리지 않으면 기존 파일을 유지합니다.' : ''}</p>
+      <div class="button-row${isEditMode ? '' : ' single'}">
+        <button type="submit" class="primary-button">${isEditMode ? '사업자등록증 수정 저장' : '사업자등록증 저장'}</button>
+        ${isEditMode ? '<button type="button" id="business-cancel-edit" class="secondary-button">수정 취소</button>' : ''}
+      </div>
+    </form>
+    ${listHtml}
+    ${viewerHtml}
+  </section>`;
+
+  const form = document.getElementById('business-record-form');
+  const nameInput = form.querySelector('input[name="name"]');
+  const emailInput = form.querySelector('input[name="email"]');
+  const fileInput = form.querySelector('input[name="certificate"]');
+
+  setKoreanInput(nameInput);
+  emailInput.setAttribute('autocapitalize', 'off');
+  emailInput.setAttribute('autocorrect', 'off');
+  emailInput.setAttribute('spellcheck', 'false');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const trimmedName = form.name.value.trim();
+    if (!trimmedName) {
+      return;
+    }
+
+    try {
+      const file = fileInput.files[0];
+      const recordsData = getBusinessRecords();
+      const editingName = selectedRecord ? selectedRecord.name : null;
+      const existingIndex = recordsData.findIndex((record) => record.name === editingName);
+      const duplicateIndex = recordsData.findIndex((record) => record.name === trimmedName);
+      const imageData = file ? await compressImageFile(file) : selectedRecord?.imageData;
+
+      if (!imageData) {
+        window.alert('사업자등록증 이미지를 선택해 주세요.');
+        return;
+      }
+
+      if (duplicateIndex >= 0 && recordsData[duplicateIndex].name !== editingName) {
+        window.alert('같은 거래처 이름이 이미 있습니다. 기존 거래처를 수정하거나 다른 이름을 사용해 주세요.');
+        return;
+      }
+
+      const nextRecord = {
+        name: trimmedName,
+        email: form.email.value.trim(),
+        imageData,
+      };
+
+      if (existingIndex >= 0) {
+        recordsData.splice(existingIndex, 1, nextRecord);
+      } else {
+        recordsData.push(nextRecord);
+      }
+
+      state.selectedBusinessName = nextRecord.name;
+      saveBusinessRecords(recordsData);
+      renderBusinessRegistry();
+    } catch (error) {
+      window.alert('이미지 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+    }
+  });
+
+  if (isEditMode) {
+    document.getElementById('business-cancel-edit').addEventListener('click', () => {
+      state.selectedBusinessName = '';
+      renderBusinessRegistry();
+    });
+  }
+
+  document.querySelectorAll('.client-button').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.selectedBusinessName = button.dataset.name;
+      renderBusinessRegistry();
+    });
+  });
+
+  if (selectedRecord) {
+    document.getElementById('business-edit-reset').addEventListener('click', () => {
+      state.selectedBusinessName = '';
+      renderBusinessRegistry();
+    });
+
+    document.getElementById('business-delete').addEventListener('click', () => {
+      const nextRecords = getBusinessRecords().filter((record) => record.name !== selectedRecord.name);
+      state.selectedBusinessName = '';
+      saveBusinessRecords(nextRecords);
+      renderBusinessRegistry();
+    });
+  }
 }
 
 function buildSalesList(entries) {
@@ -436,3 +611,4 @@ renderMonthSelector();
 renderCalendar();
 renderYearReport();
 renderMonthReport();
+renderBusinessRegistry();

@@ -73,16 +73,6 @@
   background: #fff;
   border: 1px solid #e4edf6;
 }
-.calendar-summary {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  margin-bottom: 8px;
-  font-size: 1.1em;
-}
-.calendar-summary span {
-  margin-bottom: 2px;
-}
 body {
   font-family: 'Noto Sans KR', sans-serif;
   background: #f5f5f5;
@@ -102,8 +92,135 @@ h1 {
   color: #1976d2;
   text-align: center;
 }
-#year-selector, #month-selector, #calendar {
+#year-selector, #month-selector, #calendar, #business-registry {
   margin-top: 16px;
+}
+.section-card {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f8fbff;
+  border: 1px solid #dce8f5;
+}
+.section-card h2 {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  color: #0d47a1;
+}
+.stack-form {
+  display: grid;
+  gap: 8px;
+}
+.stack-form input,
+.stack-form button,
+.stack-form select {
+  width: 100%;
+  box-sizing: border-box;
+}
+.stack-form input,
+.stack-form select {
+  padding: 10px 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+.primary-button {
+  border: 0;
+  border-radius: 10px;
+  background: #1976d2;
+  color: #fff;
+  padding: 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.secondary-button {
+  border: 1px solid #c7d7ea;
+  border-radius: 10px;
+  background: #fff;
+  color: #0d47a1;
+  padding: 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.danger-button {
+  border: 0;
+  border-radius: 10px;
+  background: #d32f2f;
+  color: #fff;
+  padding: 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.button-row.single {
+  grid-template-columns: 1fr;
+}
+.file-hint {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+.client-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.client-list li {
+  margin-bottom: 8px;
+}
+.client-button {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #d6e8fb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 12px;
+  cursor: pointer;
+}
+.client-button.is-active {
+  border-color: #1976d2;
+  background: #eef6ff;
+}
+.client-button strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.client-meta {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.certificate-viewer {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #dce8f5;
+}
+.certificate-viewer h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+.certificate-viewer p {
+  margin: 0 0 8px;
+}
+.certificate-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.certificate-image {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #dce8f5;
+}
+.empty-text {
+  margin: 0;
+  color: #6b7280;
 }
 
 table {
