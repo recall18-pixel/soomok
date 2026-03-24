@@ -41,9 +41,30 @@ function renderMonthSelector(year, selectedMonth = 1) {
 }
 
 function renderCalendar(year, month) {
+  // 월별 합계 계산
+  const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
+  let monthSum = 0;
+  let monthOrder = 0;
+  Object.keys(salesData).forEach(date => {
+    if (date.startsWith(`${year}-${month.toString().padStart(2,'0')}`)) {
+      salesData[date].forEach(item => {
+        monthSum += Number(item.amount) || 0;
+        monthOrder += Number(item.order) || 0;
+      });
+    }
+  });
+  const monthProfit = monthSum - monthOrder;
+
+  // 합계 표시
+  let summaryHtml = `<div class="calendar-summary">
+    <span><b>매출합계:</b> ${monthSum.toLocaleString()}원</span>
+    <span><b>원가(발주가):</b> ${monthOrder.toLocaleString()}원</span>
+    <span><b>수익:</b> ${monthProfit.toLocaleString()}원</span>
+  </div>`;
+
   const firstDay = new Date(year, month-1, 1);
   const lastDay = new Date(year, month, 0);
-  let html = `<table><tr>`;
+  let html = summaryHtml + `<table><tr>`;
   const days = ['일','월','화','수','목','금','토'];
   html += days.map(d=>`<th>${d}</th>`).join('') + '</tr><tr>';
   for(let i=0;i<firstDay.getDay();i++) html += '<td></td>';
@@ -70,30 +91,42 @@ function showSalesForm(date) {
   let listHtml = '';
   if (daySales.length > 0) {
     listHtml = '<div style="margin-bottom:12px;"><b>저장된 매출 내역</b><ul style="padding-left:18px;">' +
-      daySales.map((item, idx) => `<li><b>${item.amount.toLocaleString()}원</b> (${item.client})<br><span style='color:#888;font-size:0.95em;'>${item.memo ? item.memo : ''}</span></li>`).join('') +
+      daySales.map((item, idx) => `<li><b>${item.amount.toLocaleString()}원</b> (${item.client})<br><span style='color:#888;font-size:0.95em;'>발주가: ${item.order ? Number(item.order).toLocaleString() : '0'}원<br>${item.memo ? item.memo : ''}</span></li>`).join('') +
       '</ul></div>';
   }
 
   salesForm.innerHTML = `<h3>${date} 매출 기록</h3>
     ${listHtml}
     <form id="sales-entry-form">
-      <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;">
-      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px;">
-      <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px;">
+      <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;" inputmode="numeric">
+      <input type="number" name="order" placeholder="발주가(원가)" required style="width:100%;margin-bottom:8px;" inputmode="numeric">
+      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off">
+      <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off">
       <button type="submit">저장</button>
     </form>`;
+  // 한글 입력 고정 (IME)
+  setTimeout(() => {
+    const clientInput = document.querySelector('#sales-entry-form input[name="client"]');
+    const memoInput = document.querySelector('#sales-entry-form input[name="memo"]');
+    if (clientInput) clientInput.setAttribute('lang', 'ko');
+    if (memoInput) memoInput.setAttribute('lang', 'ko');
+  }, 10);
   document.getElementById('sales-entry-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const form = e.target;
     const amount = Number(form.amount.value);
+    const order = Number(form.order.value);
     const client = form.client.value;
     const memo = form.memo.value;
-    const newEntry = { amount, client, memo };
+    const newEntry = { amount, order, client, memo };
     const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
     if (!salesData[date]) salesData[date] = [];
     salesData[date].push(newEntry);
     localStorage.setItem('salesData', JSON.stringify(salesData));
     showSalesForm(date); // 저장 후 다시 보여주기
+    // 캘린더 합계 갱신
+    const [year, month] = date.split('-');
+    renderCalendar(Number(year), Number(month));
   });
 }
 
