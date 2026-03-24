@@ -1,5 +1,7 @@
 const yearSelector = document.getElementById('year-selector');
+const yearReport = document.getElementById('year-report');
 const monthSelector = document.getElementById('month-selector');
+const monthReport = document.getElementById('month-report');
 const calendar = document.getElementById('calendar');
 const salesForm = document.getElementById('sales-form');
 
@@ -13,6 +15,8 @@ for (let year = now.getFullYear() - 3; year <= now.getFullYear() + 1; year += 1)
 const state = {
   selectedYear: now.getFullYear(),
   selectedMonth: 1,
+  isYearReportOpen: false,
+  isMonthReportOpen: false,
 };
 
 function getSalesData() {
@@ -44,9 +48,12 @@ function escapeHtml(value) {
 }
 
 function renderYearSelector() {
-  yearSelector.innerHTML = '<label>연도 선택: <select id="year-select">' +
+  yearSelector.innerHTML = '<div class="selector-row">' +
+    '<label>연도 선택: <select id="year-select">' +
     years.map((year) => `<option value="${year}"${year === state.selectedYear ? ' selected' : ''}>${year}</option>`).join('') +
-    '</select></label>';
+    '</select></label>' +
+    `<button type="button" id="year-report-toggle" class="toggle-report-button${state.isYearReportOpen ? ' is-open' : ''}">연매출</button>` +
+    '</div>';
 
   const yearSelect = document.getElementById('year-select');
   yearSelect.addEventListener('change', (event) => {
@@ -55,23 +62,41 @@ function renderYearSelector() {
     salesForm.style.display = 'none';
     renderMonthSelector();
     renderCalendar();
+    renderYearReport();
+    renderMonthReport();
+  });
+
+  document.getElementById('year-report-toggle').addEventListener('click', () => {
+    state.isYearReportOpen = !state.isYearReportOpen;
+    renderYearSelector();
+    renderYearReport();
   });
 }
 
 function renderMonthSelector() {
   monthSelector.style.display = '';
-  monthSelector.innerHTML = '<label>월 선택: <select id="month-select">' +
+  monthSelector.innerHTML = '<div class="selector-row">' +
+    '<label>월 선택: <select id="month-select">' +
     Array.from({ length: 12 }, (_, index) => {
       const month = index + 1;
       return `<option value="${month}"${month === state.selectedMonth ? ' selected' : ''}>${month}월</option>`;
     }).join('') +
-    '</select></label>';
+    '</select></label>' +
+    `<button type="button" id="month-report-toggle" class="toggle-report-button${state.isMonthReportOpen ? ' is-open' : ''}">월매출</button>` +
+    '</div>';
 
   const monthSelect = document.getElementById('month-select');
   monthSelect.addEventListener('change', (event) => {
     state.selectedMonth = Number(event.target.value);
     salesForm.style.display = 'none';
     renderCalendar();
+    renderMonthReport();
+  });
+
+  document.getElementById('month-report-toggle').addEventListener('click', () => {
+    state.isMonthReportOpen = !state.isMonthReportOpen;
+    renderMonthSelector();
+    renderMonthReport();
   });
 }
 
@@ -97,6 +122,151 @@ function calculateMonthSummary(year, month) {
     orderTotal,
     profitTotal: amountTotal - orderTotal,
   };
+}
+
+function calculateYearSummary(year) {
+  const prefix = `${year}-`;
+  const salesData = getSalesData();
+  let amountTotal = 0;
+  let orderTotal = 0;
+
+  Object.entries(salesData).forEach(([date, entries]) => {
+    if (!date.startsWith(prefix)) {
+      return;
+    }
+
+    entries.forEach((entry) => {
+      amountTotal += Number(entry.amount) || 0;
+      orderTotal += Number(entry.order) || 0;
+    });
+  });
+
+  return {
+    amountTotal,
+    orderTotal,
+    profitTotal: amountTotal - orderTotal,
+  };
+}
+
+function getMonthlyEntries(year, month) {
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  const salesData = getSalesData();
+
+  return Object.keys(salesData)
+    .filter((date) => date.startsWith(prefix))
+    .sort()
+    .map((date) => ({
+      date,
+      entries: salesData[date],
+    }));
+}
+
+function getYearlyEntries(year) {
+  const prefix = `${year}-`;
+  const salesData = getSalesData();
+  const grouped = {};
+
+  Object.keys(salesData)
+    .filter((date) => date.startsWith(prefix))
+    .sort()
+    .forEach((date) => {
+      const month = Number(date.split('-')[1]);
+      if (!grouped[month]) {
+        grouped[month] = [];
+      }
+
+      grouped[month].push({
+        date,
+        entries: salesData[date],
+      });
+    });
+
+  return Object.keys(grouped)
+    .map((month) => ({
+      month: Number(month),
+      dates: grouped[month],
+    }))
+    .sort((left, right) => left.month - right.month);
+}
+
+function renderEntryItems(entries) {
+  return '<ul class="report-list">' +
+    entries.map((entry) => `<li>
+      <b>${(Number(entry.amount) || 0).toLocaleString()}원</b> (${escapeHtml(entry.client)})<br>
+      원가: ${(Number(entry.order) || 0).toLocaleString()}원<br>
+      메모: ${escapeHtml(entry.memo) || '-'}
+    </li>`).join('') +
+    '</ul>';
+}
+
+function renderMonthReport() {
+  if (!state.isMonthReportOpen) {
+    monthReport.style.display = 'none';
+    monthReport.innerHTML = '';
+    return;
+  }
+
+  const year = state.selectedYear;
+  const month = state.selectedMonth;
+  const summary = calculateMonthSummary(year, month);
+  const groups = getMonthlyEntries(year, month);
+
+  let html = `<div class="report-panel">
+    <h3 class="report-title">${year}년 ${month}월 전체 내역</h3>
+    <div class="report-summary">
+      <span><b>매출합계:</b> ${summary.amountTotal.toLocaleString()}원</span>
+      <span><b>원가:</b> ${summary.orderTotal.toLocaleString()}원</span>
+      <span class="profit"><b>수익:</b> ${summary.profitTotal.toLocaleString()}원</span>
+    </div>`;
+
+  if (groups.length === 0) {
+    html += '<p class="report-empty">등록된 매출 내역이 없습니다.</p>';
+  } else {
+    html += groups.map((group) => `<div class="report-group">
+      <h4 class="report-group-title">${group.date}</h4>
+      ${renderEntryItems(group.entries)}
+    </div>`).join('');
+  }
+
+  html += '</div>';
+  monthReport.style.display = '';
+  monthReport.innerHTML = html;
+}
+
+function renderYearReport() {
+  if (!state.isYearReportOpen) {
+    yearReport.style.display = 'none';
+    yearReport.innerHTML = '';
+    return;
+  }
+
+  const year = state.selectedYear;
+  const summary = calculateYearSummary(year);
+  const groups = getYearlyEntries(year);
+
+  let html = `<div class="report-panel">
+    <h3 class="report-title">${year}년 연간 매출 내역</h3>
+    <div class="report-summary">
+      <span><b>연매출:</b> ${summary.amountTotal.toLocaleString()}원</span>
+      <span><b>원가:</b> ${summary.orderTotal.toLocaleString()}원</span>
+      <span class="profit"><b>수익:</b> ${summary.profitTotal.toLocaleString()}원</span>
+    </div>`;
+
+  if (groups.length === 0) {
+    html += '<p class="report-empty">등록된 매출 내역이 없습니다.</p>';
+  } else {
+    html += groups.map((group) => `<div class="report-group">
+      <h4 class="report-group-title">${group.month}월</h4>
+      ${group.dates.map((dateGroup) => `<div class="report-group">
+        <h4 class="report-group-title">${dateGroup.date}</h4>
+        ${renderEntryItems(dateGroup.entries)}
+      </div>`).join('')}
+    </div>`).join('');
+  }
+
+  html += '</div>';
+  yearReport.style.display = '';
+  yearReport.innerHTML = html;
 }
 
 function renderCalendar() {
@@ -183,6 +353,8 @@ function attachCreateFormEvents(date) {
     saveSalesData(salesData);
     showSalesForm(date);
     renderCalendar();
+    renderMonthReport();
+    renderYearReport();
   });
 
   document.querySelectorAll('.sales-item').forEach((item) => {
@@ -250,6 +422,8 @@ function showEditForm(date, index) {
     saveSalesData(salesData);
     showSalesForm(date);
     renderCalendar();
+    renderMonthReport();
+    renderYearReport();
   });
 
   document.getElementById('edit-cancel').addEventListener('click', () => {
@@ -260,3 +434,5 @@ function showEditForm(date, index) {
 renderYearSelector();
 renderMonthSelector();
 renderCalendar();
+renderYearReport();
+renderMonthReport();
