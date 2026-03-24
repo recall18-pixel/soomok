@@ -1,3 +1,7 @@
+.calendar-summary span.profit {
+  color: #d32f2f;
+  font-weight: bold;
+}
 .calendar-summary {
   display: flex;
   flex-direction: column;
