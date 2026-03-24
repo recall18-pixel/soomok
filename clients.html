@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>거래처관리</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1976d2">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header class="site-header">
+      <p class="eyebrow">Client Registry</p>
+      <h1>거래처관리</h1>
+      <p class="site-description">거래처 이름, 사업자등록번호, 담당자, 이메일, 사업자등록증 이미지를 등록하고 관리합니다.</p>
+    </header>
+
+    <nav class="top-nav">
+      <a class="nav-link" href="index.html">홈</a>
+      <a class="nav-link" href="sales.html">매출기록</a>
+      <a class="nav-link is-active" href="clients.html">거래처관리</a>
+      <a class="nav-link" href="reports.html">리포트</a>
+      <a class="nav-link" href="settings.html">설정</a>
+    </nav>
+
+    <main class="page-stack">
+      <div id="business-registry"></div>
+    </main>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="clients.js"></script>
+</body>
+</html>

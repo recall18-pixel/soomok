@@ -3,23 +3,58 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>매출카드 PWA</title>
+  <title>매출카드 홈</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1976d2">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="container">
-    <h1>매출카드</h1>
-    <div id="year-selector"></div>
-    <div id="year-report" style="display:none;"></div>
-    <div id="month-selector" style="display:none;"></div>
-    <div id="month-report" style="display:none;"></div>
-    <div id="sales-client-selector"></div>
-    <div id="calendar" style="display:none;"></div>
-    <div id="sales-form" style="display:none;"></div>
-    <div id="business-registry"></div>
+    <header class="site-header">
+      <p class="eyebrow">Personal Sales PWA</p>
+      <h1>매출카드</h1>
+      <p class="site-description">매출 기록, 거래처 관리, 리포트를 페이지별로 나눠서 빠르게 확인할 수 있도록 정리한 홈 화면입니다.</p>
+    </header>
+
+    <nav class="top-nav">
+      <a class="nav-link is-active" href="index.html">홈</a>
+      <a class="nav-link" href="sales.html">매출기록</a>
+      <a class="nav-link" href="clients.html">거래처관리</a>
+      <a class="nav-link" href="reports.html">리포트</a>
+      <a class="nav-link" href="settings.html">설정</a>
+    </nav>
+
+    <main class="page-stack">
+      <section class="card">
+        <h2>빠른 이동</h2>
+        <div class="menu-grid">
+          <a class="menu-card" href="sales.html">
+            <strong>매출기록</strong>
+            <span>캘린더에서 날짜별 매출을 입력하고 수정합니다.</span>
+          </a>
+          <a class="menu-card" href="clients.html">
+            <strong>거래처관리</strong>
+            <span>거래처, 사업자등록번호, 담당자, 등록증 이미지를 관리합니다.</span>
+          </a>
+          <a class="menu-card" href="reports.html">
+            <strong>리포트</strong>
+            <span>월별, 연별, 사업자번호별 매출 흐름을 모아 봅니다.</span>
+          </a>
+          <a class="menu-card" href="settings.html">
+            <strong>설정</strong>
+            <span>데이터 백업, 복원, 초기화를 수행합니다.</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>대시보드</h2>
+        <div id="home-summary"></div>
+      </section>
+    </main>
   </div>
-  <script src="app.js"></script>
+
+  <script src="data.js"></script>
+  <script src="home.js"></script>
 </body>
 </html>
