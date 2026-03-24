@@ -121,44 +121,44 @@ function showSalesForm(date) {
     }, 10);
   }
 
-  // 수정 폼 표시 함수
-  function showEditForm(date, idx) {
-    const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
-    const entry = salesData[date][idx];
-    salesForm.style.display = '';
-    salesForm.innerHTML = `<h3>${date} 매출 수정</h3>
-      <form id="sales-edit-form">
-        <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${entry.amount}">
-        <input type="number" name="order" placeholder="발주가(원가)" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${entry.order}">
-        <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off" value="${entry.client}">
-        <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off" value="${entry.memo}">
-        <button type="submit">수정 저장</button>
-        <button type="button" id="edit-cancel" style="margin-left:8px;">취소</button>
-      </form>`;
-    setTimeout(() => {
-      const clientInput = document.querySelector('#sales-edit-form input[name="client"]');
-      const memoInput = document.querySelector('#sales-edit-form input[name="memo"]');
-      if (clientInput) clientInput.setAttribute('lang', 'ko');
-      if (memoInput) memoInput.setAttribute('lang', 'ko');
-    }, 10);
-    document.getElementById('sales-edit-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const form = e.target;
-      entry.amount = Number(form.amount.value);
-      entry.order = Number(form.order.value);
-      entry.client = form.client.value;
-      entry.memo = form.memo.value;
-      salesData[date][idx] = entry;
-      localStorage.setItem('salesData', JSON.stringify(salesData));
-      showSalesForm(date);
-      // 캘린더 합계 갱신
-      const [year, month] = date.split('-');
-      renderCalendar(Number(year), Number(month));
-    });
-    document.getElementById('edit-cancel').addEventListener('click', () => {
-      showSalesForm(date);
-    });
-  }
+// 수정 폼 표시 함수 (전역)
+function showEditForm(date, idx) {
+  const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
+  const entry = salesData[date][idx];
+  salesForm.style.display = '';
+  salesForm.innerHTML = `<h3>${date} 매출 수정</h3>
+    <form id="sales-edit-form">
+      <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${entry.amount}">
+      <input type="number" name="order" placeholder="발주가(원가)" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${entry.order}">
+      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off" value="${entry.client}">
+      <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off" value="${entry.memo}">
+      <button type="submit">수정 저장</button>
+      <button type="button" id="edit-cancel" style="margin-left:8px;">취소</button>
+    </form>`;
+  setTimeout(() => {
+    const clientInput = document.querySelector('#sales-edit-form input[name="client"]');
+    const memoInput = document.querySelector('#sales-edit-form input[name="memo"]');
+    if (clientInput) clientInput.setAttribute('lang', 'ko');
+    if (memoInput) memoInput.setAttribute('lang', 'ko');
+  }, 10);
+  document.getElementById('sales-edit-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const form = e.target;
+    entry.amount = Number(form.amount.value);
+    entry.order = Number(form.order.value);
+    entry.client = form.client.value;
+    entry.memo = form.memo.value;
+    salesData[date][idx] = entry;
+    localStorage.setItem('salesData', JSON.stringify(salesData));
+    showSalesForm(date);
+    // 캘린더 합계 갱신
+    const [year, month] = date.split('-');
+    renderCalendar(Number(year), Number(month));
+  });
+  document.getElementById('edit-cancel').addEventListener('click', () => {
+    showSalesForm(date);
+  });
+}
   // 한글 입력 고정 (IME)
   setTimeout(() => {
     const clientInput = document.querySelector('#sales-entry-form input[name="client"]');
