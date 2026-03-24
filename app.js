@@ -1,4 +1,3 @@
-// 연도 선택
 const yearSelector = document.getElementById('year-selector');
 const monthSelector = document.getElementById('month-selector');
 const calendar = document.getElementById('calendar');
@@ -6,183 +5,258 @@ const salesForm = document.getElementById('sales-form');
 
 const now = new Date();
 const years = [];
-for (let y = now.getFullYear() - 3; y <= now.getFullYear() + 1; y++) {
-  years.push(y);
+
+for (let year = now.getFullYear() - 3; year <= now.getFullYear() + 1; year += 1) {
+  years.push(year);
+}
+
+const state = {
+  selectedYear: now.getFullYear(),
+  selectedMonth: 1,
+};
+
+function getSalesData() {
+  return JSON.parse(localStorage.getItem('salesData') || '{}');
+}
+
+function saveSalesData(data) {
+  localStorage.setItem('salesData', JSON.stringify(data));
+}
+
+function setKoreanInput(target) {
+  if (!target) {
+    return;
+  }
+
+  target.setAttribute('lang', 'ko');
+  target.setAttribute('autocapitalize', 'off');
+  target.setAttribute('autocorrect', 'off');
+  target.setAttribute('spellcheck', 'false');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function renderYearSelector() {
   yearSelector.innerHTML = '<label>연도 선택: <select id="year-select">' +
-    years.map(y => `<option value="${y}">${y}</option>`).join('') +
+    years.map((year) => `<option value="${year}"${year === state.selectedYear ? ' selected' : ''}>${year}</option>`).join('') +
     '</select></label>';
-  document.getElementById('year-select').addEventListener('change', (e) => {
-    renderMonthSelector(Number(e.target.value), 1);
-    monthSelector.style.display = '';
-    calendar.style.display = '';
-    renderCalendar(Number(e.target.value), 1);
+
+  const yearSelect = document.getElementById('year-select');
+  yearSelect.addEventListener('change', (event) => {
+    state.selectedYear = Number(event.target.value);
+    state.selectedMonth = 1;
     salesForm.style.display = 'none';
+    renderMonthSelector();
+    renderCalendar();
   });
-  // 최초 진입 시 현재 연도, 1월 표시
-  const initialYear = Number(document.getElementById('year-select').value);
-  renderMonthSelector(initialYear, 1);
+}
+
+function renderMonthSelector() {
   monthSelector.style.display = '';
-  calendar.style.display = '';
-  renderCalendar(initialYear, 1);
-}
-
-function renderMonthSelector(year, selectedMonth = 1) {
   monthSelector.innerHTML = '<label>월 선택: <select id="month-select">' +
-    Array.from({length:12}, (_,i) => `<option value="${i+1}"${selectedMonth === i+1 ? ' selected' : ''}>${i+1}월</option>`).join('') +
+    Array.from({ length: 12 }, (_, index) => {
+      const month = index + 1;
+      return `<option value="${month}"${month === state.selectedMonth ? ' selected' : ''}>${month}월</option>`;
+    }).join('') +
     '</select></label>';
-  document.getElementById('month-select').addEventListener('change', (e) => {
-    renderCalendar(year, Number(e.target.value));
-    calendar.style.display = '';
+
+  const monthSelect = document.getElementById('month-select');
+  monthSelect.addEventListener('change', (event) => {
+    state.selectedMonth = Number(event.target.value);
     salesForm.style.display = 'none';
+    renderCalendar();
   });
 }
 
-function renderCalendar(year, month) {
-  // 월별 합계 계산
-  const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
-  let monthSum = 0;
-  let monthOrder = 0;
-  Object.keys(salesData).forEach(date => {
-    if (date.startsWith(`${year}-${month.toString().padStart(2,'0')}`)) {
-      salesData[date].forEach(item => {
-        monthSum += Number(item.amount) || 0;
-        monthOrder += Number(item.order) || 0;
-      });
-    }
-  });
-  const monthProfit = monthSum - monthOrder;
+function calculateMonthSummary(year, month) {
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  const salesData = getSalesData();
+  let amountTotal = 0;
+  let orderTotal = 0;
 
-  // 합계 표시
-  let summaryHtml = `<div class="calendar-summary">
-    <span><b>매출합계:</b> ${monthSum.toLocaleString()}원</span>
-    <span><b>원가(발주가):</b> ${monthOrder.toLocaleString()}원</span>
-    <span class='profit'><b>수익:</b> ${monthProfit.toLocaleString()}원</span>
+  Object.entries(salesData).forEach(([date, entries]) => {
+    if (!date.startsWith(prefix)) {
+      return;
+    }
+
+    entries.forEach((entry) => {
+      amountTotal += Number(entry.amount) || 0;
+      orderTotal += Number(entry.order) || 0;
+    });
+  });
+
+  return {
+    amountTotal,
+    orderTotal,
+    profitTotal: amountTotal - orderTotal,
+  };
+}
+
+function renderCalendar() {
+  const year = state.selectedYear;
+  const month = state.selectedMonth;
+  const summary = calculateMonthSummary(year, month);
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+
+  let html = `<div class="calendar-summary">
+    <span><b>매출합계:</b> ${summary.amountTotal.toLocaleString()}원</span>
+    <span><b>원가(발주가):</b> ${summary.orderTotal.toLocaleString()}원</span>
+    <span class="profit"><b>수익:</b> ${summary.profitTotal.toLocaleString()}원</span>
   </div>`;
 
-  const firstDay = new Date(year, month-1, 1);
-  const lastDay = new Date(year, month, 0);
-  let html = summaryHtml + `<table><tr>`;
-  const days = ['일','월','화','수','목','금','토'];
-  html += days.map(d=>`<th>${d}</th>`).join('') + '</tr><tr>';
-  for(let i=0;i<firstDay.getDay();i++) html += '<td></td>';
-  for(let d=1;d<=lastDay.getDate();d++) {
-    const dayOfWeek = (firstDay.getDay() + d - 1) % 7;
-    html += `<td class="calendar-day" data-date="${year}-${month.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}">${d}</td>`;
-    if(dayOfWeek === 6 && d !== lastDay.getDate()) html += '</tr><tr>';
+  html += '<table><tr>';
+  html += days.map((day) => `<th>${day}</th>`).join('');
+  html += '</tr><tr>';
+
+  for (let blank = 0; blank < firstDay.getDay(); blank += 1) {
+    html += '<td></td>';
   }
+
+  for (let date = 1; date <= lastDay.getDate(); date += 1) {
+    const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+    const dayOfWeek = (firstDay.getDay() + date - 1) % 7;
+    html += `<td class="calendar-day" data-date="${fullDate}">${date}</td>`;
+
+    if (dayOfWeek === 6 && date !== lastDay.getDate()) {
+      html += '</tr><tr>';
+    }
+  }
+
   html += '</tr></table>';
+  calendar.style.display = '';
   calendar.innerHTML = html;
-  document.querySelectorAll('.calendar-day').forEach(td => {
-    td.addEventListener('click', (e) => {
-      showSalesForm(td.dataset.date);
+
+  document.querySelectorAll('.calendar-day').forEach((cell) => {
+    cell.addEventListener('click', () => {
+      showSalesForm(cell.dataset.date);
+    });
+  });
+}
+
+function buildSalesList(entries) {
+  if (entries.length === 0) {
+    return '';
+  }
+
+  return '<div style="margin-bottom:12px;"><b>저장된 매출 내역</b><ul style="padding-left:18px;">' +
+    entries.map((entry, index) => `
+      <li class="sales-item" data-idx="${index}" style="cursor:pointer; margin-bottom:8px;">
+        <b>${(Number(entry.amount) || 0).toLocaleString()}원</b> (${escapeHtml(entry.client)})<br>
+        <span style="color:#888;font-size:0.95em;">발주가: ${(Number(entry.order) || 0).toLocaleString()}원<br>${escapeHtml(entry.memo)}</span>
+      </li>`).join('') +
+    '</ul></div>';
+}
+
+function attachCreateFormEvents(date) {
+  const form = document.getElementById('sales-entry-form');
+  const clientInput = form.querySelector('input[name="client"]');
+  const memoInput = form.querySelector('input[name="memo"]');
+
+  setKoreanInput(clientInput);
+  setKoreanInput(memoInput);
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const salesData = getSalesData();
+    const entry = {
+      amount: Number(form.amount.value),
+      order: Number(form.order.value),
+      client: form.client.value.trim(),
+      memo: form.memo.value.trim(),
+    };
+
+    if (!salesData[date]) {
+      salesData[date] = [];
+    }
+
+    salesData[date].push(entry);
+    saveSalesData(salesData);
+    showSalesForm(date);
+    renderCalendar();
+  });
+
+  document.querySelectorAll('.sales-item').forEach((item) => {
+    item.addEventListener('click', () => {
+      showEditForm(date, Number(item.dataset.idx));
     });
   });
 }
 
 function showSalesForm(date) {
+  const entries = getSalesData()[date] || [];
+  const listHtml = buildSalesList(entries);
+
   salesForm.style.display = '';
-  // 저장된 데이터 불러오기
-  const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
-  const daySales = salesData[date] || [];
-
-  let listHtml = '';
-    if (daySales.length > 0) {
-      listHtml = '<div style="margin-bottom:12px;"><b>저장된 매출 내역</b><ul style="padding-left:18px;">' +
-        daySales.map((item, idx) =>
-          `<li class='sales-item' data-idx='${idx}' style='cursor:pointer;'>
-            <b>${item.amount.toLocaleString()}원</b> (${item.client})<br>
-            <span style='color:#888;font-size:0.95em;'>발주가: ${item.order ? Number(item.order).toLocaleString() : '0'}원<br>${item.memo ? item.memo : ''}</span>
-          </li>`
-        ).join('') +
-        '</ul></div>';
-    }
-
   salesForm.innerHTML = `<h3>${date} 매출 기록</h3>
     ${listHtml}
     <form id="sales-entry-form">
       <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;" inputmode="numeric">
       <input type="number" name="order" placeholder="발주가(원가)" required style="width:100%;margin-bottom:8px;" inputmode="numeric">
-      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off">
-      <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off">
+      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px;" autocomplete="off">
+      <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px;" autocomplete="off">
       <button type="submit">저장</button>
     </form>`;
-    // 수정 기능: 기존 내역 클릭 시 수정 폼 표시
-    setTimeout(() => {
-      document.querySelectorAll('.sales-item').forEach(li => {
-        li.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const idx = Number(li.dataset.idx);
-          showEditForm(date, idx);
-        });
-      });
-    }, 10);
+
+  attachCreateFormEvents(date);
+}
+
+function showEditForm(date, index) {
+  const salesData = getSalesData();
+  const entry = salesData[date]?.[index];
+
+  if (!entry) {
+    showSalesForm(date);
+    return;
   }
 
-// 수정 폼 표시 함수 (전역)
-function showEditForm(date, idx) {
-  const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
-  const entry = salesData[date][idx];
   salesForm.style.display = '';
   salesForm.innerHTML = `<h3>${date} 매출 수정</h3>
     <form id="sales-edit-form">
-      <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${entry.amount}">
-      <input type="number" name="order" placeholder="발주가(원가)" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${entry.order}">
-      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off" value="${entry.client}">
-      <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px; ime-mode:active;" autocomplete="off" value="${entry.memo}">
+      <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${escapeHtml(entry.amount)}">
+      <input type="number" name="order" placeholder="발주가(원가)" required style="width:100%;margin-bottom:8px;" inputmode="numeric" value="${escapeHtml(entry.order)}">
+      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px;" autocomplete="off" value="${escapeHtml(entry.client)}">
+      <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px;" autocomplete="off" value="${escapeHtml(entry.memo)}">
       <button type="submit">수정 저장</button>
       <button type="button" id="edit-cancel" style="margin-left:8px;">취소</button>
     </form>`;
-  setTimeout(() => {
-    const clientInput = document.querySelector('#sales-edit-form input[name="client"]');
-    const memoInput = document.querySelector('#sales-edit-form input[name="memo"]');
-    if (clientInput) clientInput.setAttribute('lang', 'ko');
-    if (memoInput) memoInput.setAttribute('lang', 'ko');
-  }, 10);
-  document.getElementById('sales-edit-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const form = e.target;
-    entry.amount = Number(form.amount.value);
-    entry.order = Number(form.order.value);
-    entry.client = form.client.value;
-    entry.memo = form.memo.value;
-    salesData[date][idx] = entry;
-    localStorage.setItem('salesData', JSON.stringify(salesData));
+
+  const form = document.getElementById('sales-edit-form');
+  const clientInput = form.querySelector('input[name="client"]');
+  const memoInput = form.querySelector('input[name="memo"]');
+
+  setKoreanInput(clientInput);
+  setKoreanInput(memoInput);
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    salesData[date][index] = {
+      amount: Number(form.amount.value),
+      order: Number(form.order.value),
+      client: form.client.value.trim(),
+      memo: form.memo.value.trim(),
+    };
+
+    saveSalesData(salesData);
     showSalesForm(date);
-    // 캘린더 합계 갱신
-    const [year, month] = date.split('-');
-    renderCalendar(Number(year), Number(month));
+    renderCalendar();
   });
+
   document.getElementById('edit-cancel').addEventListener('click', () => {
     showSalesForm(date);
   });
 }
-  // 한글 입력 고정 (IME)
-  setTimeout(() => {
-    const clientInput = document.querySelector('#sales-entry-form input[name="client"]');
-    const memoInput = document.querySelector('#sales-entry-form input[name="memo"]');
-    if (clientInput) clientInput.setAttribute('lang', 'ko');
-    if (memoInput) memoInput.setAttribute('lang', 'ko');
-  }, 10);
-  document.getElementById('sales-entry-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const amount = Number(form.amount.value);
-    const order = Number(form.order.value);
-    const client = form.client.value;
-    const memo = form.memo.value;
-    const newEntry = { amount, order, client, memo };
-    const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
-    if (!salesData[date]) salesData[date] = [];
-    salesData[date].push(newEntry);
-    localStorage.setItem('salesData', JSON.stringify(salesData));
-    showSalesForm(date); // 저장 후 다시 보여주기
-    // 캘린더 합계 갱신
-    const [year, month] = date.split('-');
-    renderCalendar(Number(year), Number(month));
-  });
-}
 
 renderYearSelector();
+renderMonthSelector();
+renderCalendar();
