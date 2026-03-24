@@ -15,16 +15,23 @@ function renderYearSelector() {
     years.map(y => `<option value="${y}">${y}</option>`).join('') +
     '</select></label>';
   document.getElementById('year-select').addEventListener('change', (e) => {
-    renderMonthSelector(Number(e.target.value));
+    renderMonthSelector(Number(e.target.value), 1);
     monthSelector.style.display = '';
-    calendar.style.display = 'none';
+    calendar.style.display = '';
+    renderCalendar(Number(e.target.value), 1);
     salesForm.style.display = 'none';
   });
+  // 최초 진입 시 현재 연도, 1월 표시
+  const initialYear = Number(document.getElementById('year-select').value);
+  renderMonthSelector(initialYear, 1);
+  monthSelector.style.display = '';
+  calendar.style.display = '';
+  renderCalendar(initialYear, 1);
 }
 
-function renderMonthSelector(year) {
+function renderMonthSelector(year, selectedMonth = 1) {
   monthSelector.innerHTML = '<label>월 선택: <select id="month-select">' +
-    Array.from({length:12}, (_,i) => `<option value="${i+1}">${i+1}월</option>`).join('') +
+    Array.from({length:12}, (_,i) => `<option value="${i+1}"${selectedMonth === i+1 ? ' selected' : ''}>${i+1}월</option>`).join('') +
     '</select></label>';
   document.getElementById('month-select').addEventListener('change', (e) => {
     renderCalendar(year, Number(e.target.value));
@@ -56,17 +63,37 @@ function renderCalendar(year, month) {
 
 function showSalesForm(date) {
   salesForm.style.display = '';
+  // 저장된 데이터 불러오기
+  const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
+  const daySales = salesData[date] || [];
+
+  let listHtml = '';
+  if (daySales.length > 0) {
+    listHtml = '<div style="margin-bottom:12px;"><b>저장된 매출 내역</b><ul style="padding-left:18px;">' +
+      daySales.map((item, idx) => `<li><b>${item.amount.toLocaleString()}원</b> (${item.client})<br><span style='color:#888;font-size:0.95em;'>${item.memo ? item.memo : ''}</span></li>`).join('') +
+      '</ul></div>';
+  }
+
   salesForm.innerHTML = `<h3>${date} 매출 기록</h3>
+    ${listHtml}
     <form id="sales-entry-form">
       <input type="number" name="amount" placeholder="매출 금액" required style="width:100%;margin-bottom:8px;">
+      <input type="text" name="client" placeholder="매출처" required style="width:100%;margin-bottom:8px;">
       <input type="text" name="memo" placeholder="메모" style="width:100%;margin-bottom:8px;">
       <button type="submit">저장</button>
     </form>`;
   document.getElementById('sales-entry-form').addEventListener('submit', (e) => {
     e.preventDefault();
-    // 저장 로직은 추후 구현
-    alert('저장되었습니다!');
-    salesForm.style.display = 'none';
+    const form = e.target;
+    const amount = Number(form.amount.value);
+    const client = form.client.value;
+    const memo = form.memo.value;
+    const newEntry = { amount, client, memo };
+    const salesData = JSON.parse(localStorage.getItem('salesData') || '{}');
+    if (!salesData[date]) salesData[date] = [];
+    salesData[date].push(newEntry);
+    localStorage.setItem('salesData', JSON.stringify(salesData));
+    showSalesForm(date); // 저장 후 다시 보여주기
   });
 }
 
