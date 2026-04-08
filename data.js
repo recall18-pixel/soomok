@@ -294,7 +294,43 @@ const SalesCardData = (() => {
     }
 
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+      let hasRefreshed = false;
+
+      navigator.serviceWorker.register('service-worker.js').then((registration) => {
+        registration.update().catch(() => {});
+
+        function promptWaitingWorker() {
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        }
+
+        if (registration.waiting) {
+          promptWaitingWorker();
+        }
+
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (!newWorker) {
+            return;
+          }
+
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              promptWaitingWorker();
+            }
+          });
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (hasRefreshed) {
+            return;
+          }
+
+          hasRefreshed = true;
+          window.location.reload();
+        });
+      }).catch(() => {});
     });
   }
 
