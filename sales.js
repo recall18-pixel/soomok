@@ -14,6 +14,26 @@ const salesState = {
   selectedSalesClientName: '',
 };
 
+function syncSalesViewToDate(date) {
+  const [year, month] = date.split('-').map(Number);
+  salesState.selectedYear = year;
+  salesState.selectedMonth = month;
+  renderSalesYearSelector();
+  renderSalesMonthSelector();
+  renderSalesCalendar();
+}
+
+function removeSalesEntry(salesData, date, index) {
+  if (!salesData[date]) {
+    return;
+  }
+
+  salesData[date].splice(index, 1);
+  if (salesData[date].length === 0) {
+    delete salesData[date];
+  }
+}
+
 function renderSalesYearSelector() {
   const years = salesDataApi.getYearOptions();
   salesYearSelector.innerHTML = `<section class="card"><div class="selector-row"><label>연도 선택
@@ -250,6 +270,7 @@ function showEditForm(date, index) {
   salesForm.innerHTML = `<section class="card">
     <h2>${date} 매출 수정</h2>
     <form id="sales-edit-form" class="stack-form">
+      <input type="date" name="entryDate" required value="${salesDataApi.escapeHtml(date)}">
       <input type="number" name="amount" placeholder="매출 금액" required inputmode="numeric" value="${salesDataApi.escapeHtml(entry.amount)}">
       <input type="number" name="order" placeholder="발주가(원가)" required inputmode="numeric" value="${salesDataApi.escapeHtml(entry.order)}">
       ${clientFieldHtml}
@@ -258,6 +279,7 @@ function showEditForm(date, index) {
         <button type="submit" class="primary-button">수정 저장</button>
         <button type="button" id="sales-edit-cancel" class="secondary-button">취소</button>
       </div>
+      <button type="button" id="sales-entry-delete" class="danger-button">기록 삭제</button>
     </form>
   </section>`;
 
@@ -281,15 +303,21 @@ function showEditForm(date, index) {
   form.addEventListener('submit', (event) => {
     event.preventDefault();
 
+    const nextDate = form.entryDate.value;
     const clientValue = clientSelect ? clientSelect.value : form.client.value.trim();
     const clientRecord = salesDataApi.getBusinessRecordByName(clientValue);
+
+    if (!nextDate) {
+      window.alert('날짜를 선택해 주세요.');
+      return;
+    }
 
     if (!clientValue) {
       window.alert('거래처를 선택해 주세요.');
       return;
     }
 
-    salesData[date][index] = {
+    const updatedEntry = {
       amount: Number(form.amount.value),
       order: Number(form.order.value),
       client: clientValue,
@@ -298,13 +326,37 @@ function showEditForm(date, index) {
       memo: form.memo.value.trim(),
     };
 
+    if (nextDate === date) {
+      salesData[date][index] = updatedEntry;
+    } else {
+      removeSalesEntry(salesData, date, index);
+      if (!salesData[nextDate]) {
+        salesData[nextDate] = [];
+      }
+      salesData[nextDate].push(updatedEntry);
+      syncSalesViewToDate(nextDate);
+    }
+
     salesState.selectedSalesClientName = clientValue;
     salesDataApi.saveSalesData(salesData);
     renderSalesClientSelector();
-    showSalesForm(date);
+    showSalesForm(nextDate);
   });
 
   document.getElementById('sales-edit-cancel').addEventListener('click', () => {
+    showSalesForm(date);
+  });
+
+  document.getElementById('sales-entry-delete').addEventListener('click', () => {
+    const confirmed = window.confirm('이 매출 기록을 삭제하시겠습니까?');
+    if (!confirmed) {
+      return;
+    }
+
+    removeSalesEntry(salesData, date, index);
+    salesDataApi.saveSalesData(salesData);
+    renderSalesClientSelector();
+    renderSalesCalendar();
     showSalesForm(date);
   });
 }
