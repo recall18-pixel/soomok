@@ -394,6 +394,7 @@ td {
 }
 
 .calendar-day {
+  position: relative;
   background: #fbfdff;
   cursor: pointer;
   transition: background 0.18s ease;
@@ -401,6 +402,29 @@ td {
 
 .calendar-day:hover {
   background: #eaf4ff;
+}
+
+.calendar-day.has-entry {
+  background: linear-gradient(180deg, #fff4d6 0%, #ffe7b1 100%);
+}
+
+.calendar-day.has-entry:hover {
+  background: linear-gradient(180deg, #ffeabf 0%, #ffd982 100%);
+}
+
+.calendar-date-number {
+  display: block;
+  font-weight: 700;
+}
+
+.calendar-day-total {
+  display: block;
+  margin-top: 6px;
+  padding: 0 4px;
+  color: #8b5a00;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  word-break: keep-all;
 }
 
 @media (max-width: 480px) {

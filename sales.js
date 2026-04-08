@@ -10,7 +10,7 @@ const salesForm = document.getElementById('sales-form');
 
 const salesState = {
   selectedYear: new Date().getFullYear(),
-  selectedMonth: 1,
+  selectedMonth: new Date().getMonth() + 1,
   selectedSalesClientName: '',
 };
 
@@ -42,7 +42,9 @@ function renderSalesYearSelector() {
 
   document.getElementById('year-select').addEventListener('change', (event) => {
     salesState.selectedYear = Number(event.target.value);
-    salesState.selectedMonth = 1;
+    salesState.selectedMonth = new Date().getFullYear() === salesState.selectedYear
+      ? new Date().getMonth() + 1
+      : 1;
     salesForm.innerHTML = '';
     renderSalesMonthSelector();
     renderSalesCalendar();
@@ -130,6 +132,7 @@ function buildSalesList(entries) {
 function renderSalesCalendar() {
   const year = salesState.selectedYear;
   const month = salesState.selectedMonth;
+  const salesData = salesDataApi.getSalesData();
   const firstDay = new Date(year, month - 1, 1);
   const lastDay = new Date(year, month, 0);
   const days = ['일', '월', '화', '수', '목', '금', '토'];
@@ -145,7 +148,13 @@ function renderSalesCalendar() {
   for (let date = 1; date <= lastDay.getDate(); date += 1) {
     const fullDate = `${year}-${String(month).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
     const dayOfWeek = (firstDay.getDay() + date - 1) % 7;
-    html += `<td class="calendar-day" data-date="${fullDate}">${date}</td>`;
+    const dayEntries = salesData[fullDate] || [];
+    const dayTotal = dayEntries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+    const hasEntries = dayEntries.length > 0;
+    html += `<td class="calendar-day${hasEntries ? ' has-entry' : ''}" data-date="${fullDate}">
+      <span class="calendar-date-number">${date}</span>
+      ${hasEntries ? `<span class="calendar-day-total">${dayTotal.toLocaleString()}원</span>` : ''}
+    </td>`;
     if (dayOfWeek === 6 && date !== lastDay.getDate()) {
       html += '</tr><tr>';
     }
