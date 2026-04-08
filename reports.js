@@ -18,6 +18,11 @@ const reportState = {
   isYearOpen: false,
 };
 
+function closeReportEditForm() {
+  reportEditPanel.innerHTML = '';
+  document.body.classList.remove('sheet-open');
+}
+
 function removeSalesEntry(salesData, date, index) {
   if (!salesData[date]) {
     return;
@@ -210,7 +215,7 @@ function showReportEditForm(date, index) {
   const businessRecords = reportDataApi.getSortedBusinessRecords();
 
   if (!entry) {
-    reportEditPanel.innerHTML = '';
+    closeReportEditForm();
     return;
   }
 
@@ -221,21 +226,30 @@ function showReportEditForm(date, index) {
       </select>`
     : `<input type="text" name="client" placeholder="매출처" required autocomplete="off" value="${reportDataApi.escapeHtml(entry.client)}">`;
 
-  reportEditPanel.innerHTML = `<section class="card">
-    <h2>리포트에서 매출 수정</h2>
-    <form id="report-edit-form" class="stack-form">
-      <input type="date" name="entryDate" required value="${reportDataApi.escapeHtml(date)}">
-      <input type="number" name="amount" placeholder="매출 금액" required inputmode="numeric" value="${reportDataApi.escapeHtml(entry.amount)}">
-      <input type="number" name="order" placeholder="발주가(원가)" required inputmode="numeric" value="${reportDataApi.escapeHtml(entry.order)}">
-      ${clientFieldHtml}
-      <input type="text" name="memo" placeholder="메모" autocomplete="off" value="${reportDataApi.escapeHtml(entry.memo)}">
-      <div class="button-row">
-        <button type="submit" class="primary-button">수정 저장</button>
-        <button type="button" id="report-edit-cancel" class="secondary-button">취소</button>
+  reportEditPanel.innerHTML = `<div class="sheet-root">
+    <div class="sheet-backdrop" id="report-sheet-backdrop"></div>
+    <section class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2>리포트에서 매출 수정</h2>
+        <button type="button" id="report-sheet-close" class="sheet-close">닫기</button>
       </div>
-      <button type="button" id="report-entry-delete" class="danger-button">기록 삭제</button>
-    </form>
-  </section>`;
+      <form id="report-edit-form" class="stack-form">
+        <input type="date" name="entryDate" required value="${reportDataApi.escapeHtml(date)}">
+        <input type="number" name="amount" placeholder="매출 금액" required inputmode="numeric" value="${reportDataApi.escapeHtml(entry.amount)}">
+        <input type="number" name="order" placeholder="발주가(원가)" required inputmode="numeric" value="${reportDataApi.escapeHtml(entry.order)}">
+        ${clientFieldHtml}
+        <input type="text" name="memo" placeholder="메모" autocomplete="off" value="${reportDataApi.escapeHtml(entry.memo)}">
+        <div class="button-row">
+          <button type="submit" class="primary-button">수정 저장</button>
+          <button type="button" id="report-edit-cancel" class="secondary-button">취소</button>
+        </div>
+        <button type="button" id="report-entry-delete" class="danger-button">기록 삭제</button>
+      </form>
+    </section>
+  </div>`;
+
+  document.body.classList.add('sheet-open');
 
   const form = document.getElementById('report-edit-form');
   const clientSelect = form.querySelector('select[name="client"]');
@@ -284,12 +298,20 @@ function showReportEditForm(date, index) {
     }
 
     reportDataApi.saveSalesData(salesData);
-    reportEditPanel.innerHTML = '';
+    closeReportEditForm();
     rerenderAllReports();
   });
 
   document.getElementById('report-edit-cancel').addEventListener('click', () => {
-    reportEditPanel.innerHTML = '';
+    closeReportEditForm();
+  });
+
+  document.getElementById('report-sheet-close').addEventListener('click', () => {
+    closeReportEditForm();
+  });
+
+  document.getElementById('report-sheet-backdrop').addEventListener('click', () => {
+    closeReportEditForm();
   });
 
   document.getElementById('report-entry-delete').addEventListener('click', () => {
@@ -300,7 +322,7 @@ function showReportEditForm(date, index) {
 
     removeSalesEntry(salesData, date, index);
     reportDataApi.saveSalesData(salesData);
-    reportEditPanel.innerHTML = '';
+    closeReportEditForm();
     rerenderAllReports();
   });
 }
