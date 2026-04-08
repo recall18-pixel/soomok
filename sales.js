@@ -14,6 +14,11 @@ const salesState = {
   selectedSalesClientName: '',
 };
 
+function closeSalesSheet() {
+  salesForm.innerHTML = '';
+  document.body.classList.remove('sheet-open');
+}
+
 function syncSalesViewToDate(date) {
   const [year, month] = date.split('-').map(Number);
   salesState.selectedYear = year;
@@ -242,19 +247,30 @@ function showSalesForm(date) {
       </select>`
     : '<input type="text" name="client" placeholder="매출처" required autocomplete="off">';
 
-  salesForm.innerHTML = `<section class="card">
-    <h2>${date} 매출 기록</h2>
-    ${listHtml}
-    <p class="sales-form-note">${businessRecords.length > 0 ? '등록된 거래처를 선택해 바로 기록할 수 있습니다.' : '거래처가 아직 없어 직접 입력 모드입니다.'}</p>
-    ${selectedClientRecord ? `<p class="sales-form-note">사업자등록번호: ${salesDataApi.escapeHtml(salesDataApi.formatBusinessNumber(selectedClientRecord.businessNumber) || '-')} / 담당자: ${salesDataApi.escapeHtml(selectedClientRecord.contactPerson) || '-'}</p>` : ''}
-    <form id="sales-entry-form" class="stack-form">
-      <input type="number" name="amount" placeholder="매출 금액" required inputmode="numeric">
-      <input type="number" name="order" placeholder="발주가(원가)" required inputmode="numeric">
-      ${clientFieldHtml}
-      <input type="text" name="memo" placeholder="메모" autocomplete="off">
-      <button type="submit" class="primary-button">저장</button>
-    </form>
-  </section>`;
+  salesForm.innerHTML = `<div class="sheet-root">
+    <div class="sheet-backdrop" id="sales-sheet-backdrop"></div>
+    <section class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2>${date} 매출 기록</h2>
+        <button type="button" id="sales-sheet-close" class="sheet-close">닫기</button>
+      </div>
+      ${listHtml}
+      <p class="sales-form-note">${businessRecords.length > 0 ? '등록된 거래처를 선택해 바로 기록할 수 있습니다.' : '거래처가 아직 없어 직접 입력 모드입니다.'}</p>
+      ${selectedClientRecord ? `<p class="sales-form-note">사업자등록번호: ${salesDataApi.escapeHtml(salesDataApi.formatBusinessNumber(selectedClientRecord.businessNumber) || '-')} / 담당자: ${salesDataApi.escapeHtml(selectedClientRecord.contactPerson) || '-'}</p>` : ''}
+      <form id="sales-entry-form" class="stack-form">
+        <input type="number" name="amount" placeholder="매출 금액" required inputmode="numeric">
+        <input type="number" name="order" placeholder="발주가(원가)" required inputmode="numeric">
+        ${clientFieldHtml}
+        <input type="text" name="memo" placeholder="메모" autocomplete="off">
+        <button type="submit" class="primary-button">저장</button>
+      </form>
+    </section>
+  </div>`;
+
+  document.body.classList.add('sheet-open');
+  document.getElementById('sales-sheet-close').addEventListener('click', closeSalesSheet);
+  document.getElementById('sales-sheet-backdrop').addEventListener('click', closeSalesSheet);
 
   attachSalesFormEvents(date);
 }
@@ -276,21 +292,32 @@ function showEditForm(date, index) {
       </select>`
     : `<input type="text" name="client" placeholder="매출처" required autocomplete="off" value="${salesDataApi.escapeHtml(entry.client)}">`;
 
-  salesForm.innerHTML = `<section class="card">
-    <h2>${date} 매출 수정</h2>
-    <form id="sales-edit-form" class="stack-form">
-      <input type="date" name="entryDate" required value="${salesDataApi.escapeHtml(date)}">
-      <input type="number" name="amount" placeholder="매출 금액" required inputmode="numeric" value="${salesDataApi.escapeHtml(entry.amount)}">
-      <input type="number" name="order" placeholder="발주가(원가)" required inputmode="numeric" value="${salesDataApi.escapeHtml(entry.order)}">
-      ${clientFieldHtml}
-      <input type="text" name="memo" placeholder="메모" autocomplete="off" value="${salesDataApi.escapeHtml(entry.memo)}">
-      <div class="button-row">
-        <button type="submit" class="primary-button">수정 저장</button>
-        <button type="button" id="sales-edit-cancel" class="secondary-button">취소</button>
+  salesForm.innerHTML = `<div class="sheet-root">
+    <div class="sheet-backdrop" id="sales-sheet-backdrop"></div>
+    <section class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <h2>${date} 매출 수정</h2>
+        <button type="button" id="sales-sheet-close" class="sheet-close">닫기</button>
       </div>
-      <button type="button" id="sales-entry-delete" class="danger-button">기록 삭제</button>
-    </form>
-  </section>`;
+      <form id="sales-edit-form" class="stack-form">
+        <input type="date" name="entryDate" required value="${salesDataApi.escapeHtml(date)}">
+        <input type="number" name="amount" placeholder="매출 금액" required inputmode="numeric" value="${salesDataApi.escapeHtml(entry.amount)}">
+        <input type="number" name="order" placeholder="발주가(원가)" required inputmode="numeric" value="${salesDataApi.escapeHtml(entry.order)}">
+        ${clientFieldHtml}
+        <input type="text" name="memo" placeholder="메모" autocomplete="off" value="${salesDataApi.escapeHtml(entry.memo)}">
+        <div class="button-row">
+          <button type="submit" class="primary-button">수정 저장</button>
+          <button type="button" id="sales-edit-cancel" class="secondary-button">취소</button>
+        </div>
+        <button type="button" id="sales-entry-delete" class="danger-button">기록 삭제</button>
+      </form>
+    </section>
+  </div>`;
+
+  document.body.classList.add('sheet-open');
+  document.getElementById('sales-sheet-close').addEventListener('click', closeSalesSheet);
+  document.getElementById('sales-sheet-backdrop').addEventListener('click', closeSalesSheet);
 
   const form = document.getElementById('sales-edit-form');
   const clientSelect = form.querySelector('select[name="client"]');
