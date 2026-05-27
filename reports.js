@@ -18,6 +18,42 @@ const reportState = {
   isYearOpen: false,
 };
 
+function openMonthReport(month) {
+  reportState.selectedMonth = month;
+  reportState.isMonthOpen = true;
+  renderReportMonthSelector();
+  renderMonthReport();
+  const monthReportElement = reportMonthPanel.querySelector('.report-panel');
+  if (monthReportElement) {
+    monthReportElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function renderYearBarChart(monthlySummaries) {
+  const maxAmount = Math.max(...monthlySummaries.map((item) => item.amountTotal), 0);
+
+  return `<div class="year-chart" role="list" aria-label="월별 매출 막대 그래프">${monthlySummaries.map((item) => {
+    const heightPercent = maxAmount > 0 ? Math.max((item.amountTotal / maxAmount) * 100, item.amountTotal > 0 ? 8 : 0) : 0;
+
+    return `<button type="button" class="year-chart-bar${item.month === reportState.selectedMonth ? ' is-active' : ''}" data-report-month="${item.month}" role="listitem" aria-label="${item.month}월 매출 ${reportDataApi.formatCurrency(item.amountTotal)}">
+      <span class="year-chart-bar-figure">
+        <span class="year-chart-bar-fill" style="height: ${heightPercent}%;"></span>
+      </span>
+      <span class="year-chart-bar-label">${item.month}월</span>
+      <span class="year-chart-bar-value">${reportDataApi.formatCurrency(item.amountTotal)}</span>
+    </button>`;
+  }).join('')}</div>`;
+}
+
+function attachYearChartEvents() {
+  document.querySelectorAll('[data-report-month]').forEach((button) => {
+    button.addEventListener('click', () => {
+      openMonthReport(Number(button.dataset.reportMonth));
+      renderYearReport();
+    });
+  });
+}
+
 function closeReportEditForm() {
   reportEditPanel.innerHTML = '';
   document.body.classList.remove('sheet-open');
@@ -89,6 +125,7 @@ function renderReportMonthSelector() {
   document.getElementById('report-month-select').addEventListener('change', (event) => {
     reportState.selectedMonth = Number(event.target.value);
     renderMonthReport();
+    renderYearReport();
   });
 }
 
@@ -126,19 +163,22 @@ function renderMonthReport() {
 
 function renderYearReport() {
   const summary = reportDataApi.calculateYearSummary(reportState.selectedYear);
+  const monthlySummaries = reportDataApi.getYearMonthlySummaries(reportState.selectedYear);
   const groups = reportDataApi.getYearlyEntries(reportState.selectedYear);
 
   reportYearPanel.innerHTML = `<section class="report-panel">
     <div class="report-header">
       <h2 class="report-title">${reportState.selectedYear}년 연간 리포트</h2>
-      <button type="button" id="toggle-year-report" class="toggle-report-button${reportState.isYearOpen ? ' is-open' : ''}">${reportState.isYearOpen ? '닫기' : '열기'}</button>
+      <button type="button" id="toggle-year-report" class="toggle-report-button${reportState.isYearOpen ? ' is-open' : ''}">${reportState.isYearOpen ? '상세 닫기' : '상세 열기'}</button>
     </div>
-    ${reportState.isYearOpen ? `<div class="report-summary">
+    <div class="report-summary">
       <span><b>연매출:</b> ${reportDataApi.formatCurrency(summary.amountTotal)}</span>
       <span><b>원가:</b> ${reportDataApi.formatCurrency(summary.orderTotal)}</span>
       <span class="profit"><b>수익:</b> ${reportDataApi.formatCurrency(summary.profitTotal)}</span>
     </div>
-    ${groups.length === 0 ? '<p class="report-empty">선택한 연도의 매출 내역이 없습니다.</p>' : groups.map((group) => `<div class="report-group"><h3 class="report-group-title">${group.month}월</h3>${group.dates.map((dateGroup) => {
+    ${summary.amountTotal === 0 ? '<p class="report-empty">선택한 연도의 월별 매출이 없습니다.</p>' : renderYearBarChart(monthlySummaries)}
+    <p class="inline-muted">막대를 누르면 해당 월 리포트가 바로 열립니다.</p>
+    ${reportState.isYearOpen ? `${groups.length === 0 ? '<p class="report-empty">선택한 연도의 매출 내역이 없습니다.</p>' : groups.map((group) => `<div class="report-group"><h3 class="report-group-title">${group.month}월</h3>${group.dates.map((dateGroup) => {
       const salesData = reportDataApi.getSalesData();
       const entriesWithIndex = (salesData[dateGroup.date] || []).map((entry, index) => ({ entry, index }));
       return `<div class="report-group"><h4 class="report-group-title">${dateGroup.date}</h4>${renderEditableEntryList(dateGroup.date, entriesWithIndex)}</div>`;
@@ -150,6 +190,8 @@ function renderYearReport() {
     renderYearReport();
     attachReportEntryEvents();
   });
+
+  attachYearChartEvents();
 
   if (reportState.isYearOpen) {
     attachReportEntryEvents();

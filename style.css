@@ -365,6 +365,64 @@ button {
   border-top: 0;
 }
 
+.year-chart {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  margin-top: 12px;
+}
+
+.year-chart-bar {
+  display: grid;
+  gap: 8px;
+  align-content: end;
+  padding: 10px 6px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  text-align: center;
+}
+
+.year-chart-bar.is-active {
+  border-color: var(--brand);
+  background: #eef6ff;
+}
+
+.year-chart-bar-figure {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  min-height: 160px;
+  padding: 0 2px;
+}
+
+.year-chart-bar-fill {
+  width: 100%;
+  max-width: 34px;
+  min-height: 2px;
+  border-radius: 12px 12px 6px 6px;
+  background: linear-gradient(180deg, #4ea7ff 0%, #1976d2 100%);
+}
+
+.year-chart-bar-label,
+.year-chart-bar-value {
+  display: block;
+}
+
+.year-chart-bar-label {
+  color: var(--brand-strong);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.year-chart-bar-value {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
 .report-group-title {
   margin-bottom: 8px;
   font-size: 0.98rem;
@@ -517,5 +575,13 @@ td {
   .settings-actions,
   .client-choice-list {
     grid-template-columns: 1fr;
+  }
+
+  .year-chart {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .year-chart-bar-figure {
+    min-height: 120px;
   }
 }

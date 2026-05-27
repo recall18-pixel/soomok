@@ -127,6 +127,22 @@ const SalesCardData = (() => {
     };
   }
 
+  function getYearMonthlySummaries(year) {
+    return Array.from({ length: 12 }, (_, index) => {
+      const month = index + 1;
+      const summary = calculateMonthSummary(year, month);
+      const entryCount = getMonthlyEntries(year, month).reduce((count, group) => count + group.entries.length, 0);
+
+      return {
+        month,
+        entryCount,
+        amountTotal: summary.amountTotal,
+        orderTotal: summary.orderTotal,
+        profitTotal: summary.profitTotal,
+      };
+    });
+  }
+
   function getMonthlyEntries(year, month) {
     const prefix = `${year}-${String(month).padStart(2, '0')}`;
     const salesData = getSalesData();
@@ -349,6 +365,7 @@ const SalesCardData = (() => {
     getYearOptions,
     calculateMonthSummary,
     calculateYearSummary,
+    getYearMonthlySummaries,
     getMonthlyEntries,
     getYearlyEntries,
     buildBusinessSalesReport,

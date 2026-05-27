@@ -36,7 +36,7 @@ function renderBusinessRegistry() {
         <button type="button" id="new-client" class="secondary-button">새 거래처 등록</button>
         <button type="button" id="delete-client" class="danger-button">삭제</button>
       </div>
-      <img src="${selectedRecord.imageData}" alt="${clientDataApi.escapeHtml(selectedRecord.name)} 사업자등록증" class="certificate-image">
+      ${selectedRecord.imageData ? `<img src="${selectedRecord.imageData}" alt="${clientDataApi.escapeHtml(selectedRecord.name)} 사업자등록증" class="certificate-image">` : '<p class="empty-text">등록된 사업자등록증 이미지가 없습니다.</p>'}
       <div class="report-panel embedded-report">
         <h3 class="report-title">사업자번호별 매출</h3>
         <div class="report-summary">
@@ -56,8 +56,8 @@ function renderBusinessRegistry() {
       <input type="text" name="businessNumber" placeholder="사업자등록번호" autocomplete="off" value="${selectedRecord ? clientDataApi.escapeHtml(selectedRecord.businessNumber) : ''}">
       <input type="text" name="contactPerson" placeholder="담당자" autocomplete="off" value="${selectedRecord ? clientDataApi.escapeHtml(selectedRecord.contactPerson) : ''}">
       <input type="email" name="email" placeholder="이메일" autocomplete="off" value="${selectedRecord ? clientDataApi.escapeHtml(selectedRecord.email) : ''}">
-      <input type="file" name="certificate" accept="image/*" ${isEditMode ? '' : 'required'}>
-      <p class="file-hint">이미지는 저장 전에 자동으로 축소/압축됩니다. ${isEditMode ? '새 이미지를 올리지 않으면 기존 파일을 유지합니다.' : ''}</p>
+      <input type="file" name="certificate" accept="image/*">
+      <p class="file-hint">이미지는 저장 전에 자동으로 축소/압축됩니다. ${isEditMode ? '새 이미지를 올리지 않으면 기존 파일을 유지합니다.' : '파일 없이도 거래처를 먼저 저장할 수 있습니다.'}</p>
       <div class="button-row${isEditMode ? '' : ' single'}">
         <button type="submit" class="primary-button">${isEditMode ? '거래처 수정 저장' : '거래처 저장'}</button>
         ${isEditMode ? '<button type="button" id="cancel-edit" class="secondary-button">수정 취소</button>' : ''}
@@ -100,11 +100,6 @@ function renderBusinessRegistry() {
       const existingIndex = recordsData.findIndex((record) => record.name === editingName);
       const duplicateIndex = recordsData.findIndex((record) => record.name === trimmedName);
       const imageData = file ? await clientDataApi.compressImageFile(file) : selectedRecord?.imageData;
-
-      if (!imageData) {
-        window.alert('사업자등록증 이미지를 선택해 주세요.');
-        return;
-      }
 
       if (duplicateIndex >= 0 && recordsData[duplicateIndex].name !== editingName) {
         window.alert('같은 거래처 이름이 이미 있습니다. 다른 이름을 사용해 주세요.');
